@@ -1,9 +1,13 @@
+# agentlib/llm/client.py
+
 import openai
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Iterator, Optional
+
 
 class LLMClient:
     """
-    Wrapper around OpenAI’s Python SDK for chat, completion, and embeddings.
+    Wrapper around OpenAI’s Python SDK for chat, completion, embeddings,
+    with optional streaming support.
     """
 
     def __init__(
@@ -24,20 +28,51 @@ class LLMClient:
         messages: List[Dict[str, str]],
         temperature: float = 0.7,
         max_tokens: int = 512,
+        stream: bool = False,
         **kwargs: Any
-    ) -> str:
+    ) -> Any:
         """
-        messages: list of {"role": "system"|"user"|"assistant", "content": "..."}
-        Returns the assistant’s reply text.
+        messages: [{"role":"system"|"user"|"assistant","content":...}]
+        If stream=False (default), returns the full assistant reply as a string.
+        If stream=True, returns an iterator of text chunks.
+        """
+        if stream:
+            return self.stream_chat(messages, temperature, max_tokens, **kwargs)
+        # non-streaming
+        resp = openai.ChatCompletion.create(
+            model=self.model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=False,
+            **kwargs
+        )
+        return resp.choices[0].message.content.strip()
+
+    def stream_chat(
+        self,
+        messages: List[Dict[str, str]],
+        temperature: float = 0.7,
+        max_tokens: int = 512,
+        **kwargs: Any
+    ) -> Iterator[str]:
+        """
+        Stream the assistant’s reply token-by-token (or chunk-by-chunk).
+        Yields each new content delta as it arrives.
         """
         resp = openai.ChatCompletion.create(
             model=self.model,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
+            stream=True,
             **kwargs
         )
-        return resp.choices[0].message.content.strip()
+        # Each chunk is a dict with choices: [ { delta: {"role"/"content":...} } ]
+        for chunk in resp:
+            delta = chunk.choices[0].delta.get("content")
+            if delta:
+                yield delta
 
     def complete(
         self,
@@ -66,5 +101,29 @@ class LLMClient:
             model=self.embedding_model,
             input=inputs
         )
-        # The response data is a list of dicts with "embedding" and "index"
         return [item["embedding"] for item in resp["data"]]
+
+
+'''
+Stream Usage Example:
+from agentlib.llm.client import LLMClient
+
+client = LLMClient(api_key="sk-…", model="gpt-4")
+
+# Non-stream:
+reply = client.chat([
+    {"role": "system", "content": "You are a helpful assistant."},
+    {"role": "user",   "content": "Hello!"}
+])
+print(reply)
+
+# Stream:
+for chunk in client.chat(
+      [
+        {"role":"system","content":"You are a helpful assistant."},
+        {"role":"user","content":"Hello!"}
+      ],
+      stream=True
+    ):
+    print(chunk, end="", flush=True)
+'''

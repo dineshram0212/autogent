@@ -25,11 +25,11 @@ class RAGAgent(BaseAgent):
 
         # 2) Build prompt with docs
         prompt = f"""Use the following context to answer.
-Context:
-{chr(10).join(docs)}
+        Context:
+        {chr(10).join(docs)}
 
-Question: {input_text}
-"""
+        Question: {input_text}
+        """
         # 3) Call LLM
         answer = self.llm.chat([{"role": "user", "content": prompt}])
         trace.append({"llm_answer": answer})
