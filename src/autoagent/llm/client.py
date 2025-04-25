@@ -1,4 +1,4 @@
-# agentlib/llm/client.py
+# autoagent/llm/client.py
 
 import openai
 from typing import List, Dict, Any, Iterator, Optional
@@ -106,7 +106,7 @@ class LLMClient:
 
 '''
 Stream Usage Example:
-from agentlib.llm.client import LLMClient
+from autoagent.llm.client import LLMClient
 
 client = LLMClient(api_key="sk-…", model="gpt-4")
 

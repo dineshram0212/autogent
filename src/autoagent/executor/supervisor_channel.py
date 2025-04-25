@@ -1,4 +1,4 @@
-# agentlib/orchestrator/supervisor_channel.py
+# autoagent/orchestrator/supervisor_channel.py
 
 from autoagent.executor.conversation_manager import ConversationManager
 
